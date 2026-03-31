@@ -101,6 +101,7 @@ export interface Message {
   content: string;
   /** @nullable */
   targetVoicePart: string | null;
+  isAnnouncement: boolean;
   createdAt: string;
   authorUsername: string;
 }
@@ -109,6 +110,7 @@ export interface CreateMessageBody {
   content: string;
   /** @nullable */
   targetVoicePart: string | null;
+  isAnnouncement: boolean;
 }
 
 export type MusicFileFileType =
@@ -127,24 +129,14 @@ export interface MusicFile {
   fileType: MusicFileFileType;
   /** @nullable */
   targetVoicePart: string | null;
+  isUploaded: boolean;
   createdAt: string;
 }
 
-export type CreateMusicBodyFileType =
-  (typeof CreateMusicBodyFileType)[keyof typeof CreateMusicBodyFileType];
-
-export const CreateMusicBodyFileType = {
-  pdf: "pdf",
-  mp3: "mp3",
-  other: "other",
-} as const;
-
-export interface CreateMusicBody {
+export interface UploadMusicBody {
   title: string;
-  url: string;
-  fileType: CreateMusicBodyFileType;
-  /** @nullable */
-  targetVoicePart: string | null;
+  targetVoicePart?: string;
+  file: Blob;
 }
 
 export interface AdminStats {
@@ -157,3 +149,24 @@ export interface AdminStats {
   totalMessages: number;
   totalMusicFiles: number;
 }
+
+export interface ChatMessage {
+  id: number;
+  content: string;
+  authorId: number;
+  authorUsername: string;
+  authorRole: string;
+  authorVoicePart: string;
+  createdAt: string;
+}
+
+export interface SendChatMessageBody {
+  content: string;
+}
+
+export type ListChatMessagesParams = {
+  /**
+   * Get messages before this ID (for pagination)
+   */
+  before?: number;
+};

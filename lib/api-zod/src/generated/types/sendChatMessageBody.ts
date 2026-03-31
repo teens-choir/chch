@@ -6,9 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface CreateMessageBody {
+export interface SendChatMessageBody {
   content: string;
-  /** @nullable */
-  targetVoicePart: string | null;
-  isAnnouncement: boolean;
 }

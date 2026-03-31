@@ -19,6 +19,8 @@ tags:
     description: Choir messages/instructions
   - name: music
     description: Music files
+  - name: chat
+    description: Group chat
 paths:
   /healthz:
     get:
@@ -300,16 +302,18 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/MusicFile"
+
+  /music/upload:
     post:
-      operationId: createMusic
+      operationId: uploadMusic
       tags: [music]
-      summary: Upload a music link (admin only)
+      summary: Upload a music file (admin only)
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: "#/components/schemas/CreateMusicBody"
+              $ref: "#/components/schemas/UploadMusicBody"
       responses:
         "201":
           description: Created music entry
@@ -333,6 +337,21 @@ paths:
         "204":
           description: Deleted
 
+  /music/files/{filename}:
+    get:
+      operationId: serveMusicFile
+      tags: [music]
+      summary: Serve an uploaded music file
+      parameters:
+        - name: filename
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: File content
+
   /admin/stats:
     get:
       operationId: getAdminStats
@@ -345,6 +364,60 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/AdminStats"
+
+  /chat:
+    get:
+      operationId: listChatMessages
+      tags: [chat]
+      summary: Get all group chat messages
+      parameters:
+        - name: before
+          in: query
+          required: false
+          schema:
+            type: integer
+          description: Get messages before this ID (for pagination)
+      responses:
+        "200":
+          description: Chat messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ChatMessage"
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      summary: Send a group chat message
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SendChatMessageBody"
+      responses:
+        "201":
+          description: Sent message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ChatMessage"
+
+  /chat/{id}:
+    delete:
+      operationId: deleteChatMessage
+      tags: [chat]
+      summary: Delete a chat message (admin or own message)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
 components:
   schemas:
@@ -510,6 +583,8 @@ components:
           type: string
         targetVoicePart:
           type: ["string", "null"]
+        isAnnouncement:
+          type: boolean
         createdAt:
           type: string
         authorUsername:
@@ -518,6 +593,7 @@ components:
         - id
         - content
         - targetVoicePart
+        - isAnnouncement
         - createdAt
         - authorUsername
 
@@ -528,9 +604,12 @@ components:
           type: string
         targetVoicePart:
           type: ["string", "null"]
+        isAnnouncement:
+          type: boolean
       required:
         - content
         - targetVoicePart
+        - isAnnouncement
 
     MusicFile:
       type: object
@@ -546,6 +625,8 @@ components:
           enum: [pdf, mp3, other]
         targetVoicePart:
           type: ["string", "null"]
+        isUploaded:
+          type: boolean
         createdAt:
           type: string
       required:
@@ -554,25 +635,22 @@ components:
         - url
         - fileType
         - targetVoicePart
+        - isUploaded
         - createdAt
 
-    CreateMusicBody:
+    UploadMusicBody:
       type: object
       properties:
         title:
           type: string
-        url:
-          type: string
-        fileType:
-          type: string
-          enum: [pdf, mp3, other]
         targetVoicePart:
-          type: ["string", "null"]
+          type: string
+        file:
+          type: string
+          format: binary
       required:
         - title
-        - url
-        - fileType
-        - targetVoicePart
+        - file
 
     AdminStats:
       type: object
@@ -602,3 +680,37 @@ components:
         - absentToday
         - totalMessages
         - totalMusicFiles
+
+    ChatMessage:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        authorId:
+          type: integer
+        authorUsername:
+          type: string
+        authorRole:
+          type: string
+        authorVoicePart:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - content
+        - authorId
+        - authorUsername
+        - authorRole
+        - authorVoicePart
+        - createdAt
+
+    SendChatMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+      required:
+        - content

@@ -14,5 +14,6 @@ export interface MusicFile {
   fileType: MusicFileFileType;
   /** @nullable */
   targetVoicePart: string | null;
+  isUploaded: boolean;
   createdAt: string;
 }

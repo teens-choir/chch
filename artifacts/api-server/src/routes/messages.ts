@@ -1,6 +1,6 @@
 import { Router, type IRouter } from "express";
 import { db, usersTable, messagesTable } from "@workspace/db";
-import { eq, or, isNull } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 
 const router: IRouter = Router();
 
@@ -33,6 +33,7 @@ router.get("/messages", async (req, res): Promise<void> => {
     id: messagesTable.id,
     content: messagesTable.content,
     targetVoicePart: messagesTable.targetVoicePart,
+    isAnnouncement: messagesTable.isAnnouncement,
     createdAt: messagesTable.createdAt,
     authorId: messagesTable.authorId,
   }).from(messagesTable).orderBy(messagesTable.createdAt);
@@ -49,6 +50,7 @@ router.get("/messages", async (req, res): Promise<void> => {
     id: m.id,
     content: m.content,
     targetVoicePart: m.targetVoicePart,
+    isAnnouncement: m.isAnnouncement,
     createdAt: m.createdAt.toISOString(),
     authorUsername: authorMap.get(m.authorId) || "Admin",
   })));
@@ -57,7 +59,7 @@ router.get("/messages", async (req, res): Promise<void> => {
 router.post("/messages", async (req, res): Promise<void> => {
   if (!await requireAdmin(req, res)) return;
 
-  const { content, targetVoicePart } = req.body;
+  const { content, targetVoicePart, isAnnouncement } = req.body;
   if (content == null) {
     res.status(400).json({ error: "Content required" });
     return;
@@ -66,6 +68,7 @@ router.post("/messages", async (req, res): Promise<void> => {
   const [message] = await db.insert(messagesTable).values({
     content,
     targetVoicePart: targetVoicePart || null,
+    isAnnouncement: !!isAnnouncement,
     authorId: req.session.userId!,
   }).returning();
 
@@ -76,6 +79,7 @@ router.post("/messages", async (req, res): Promise<void> => {
     id: message.id,
     content: message.content,
     targetVoicePart: message.targetVoicePart,
+    isAnnouncement: message.isAnnouncement,
     createdAt: message.createdAt.toISOString(),
     authorUsername: author?.username || "Admin",
   });

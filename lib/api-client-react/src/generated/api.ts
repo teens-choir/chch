@@ -22,17 +22,20 @@ import type {
   AttendanceStats,
   AuthUser,
   ChangePasswordBody,
+  ChatMessage,
   CreateMessageBody,
-  CreateMusicBody,
   ErrorResponse,
   HealthStatus,
+  ListChatMessagesParams,
   LoginBody,
   Message,
   MusicFile,
   RegisterBody,
+  SendChatMessageBody,
   SuccessResponse,
   UpdateAttendanceBody,
   UpdateVoicePartBody,
+  UploadMusicBody,
   User,
 } from "./api.schemas";
 
@@ -1236,42 +1239,48 @@ export function useListMusic<
 }
 
 /**
- * @summary Upload a music link (admin only)
+ * @summary Upload a music file (admin only)
  */
-export const getCreateMusicUrl = () => {
-  return `/api/music`;
+export const getUploadMusicUrl = () => {
+  return `/api/music/upload`;
 };
 
-export const createMusic = async (
-  createMusicBody: CreateMusicBody,
+export const uploadMusic = async (
+  uploadMusicBody: UploadMusicBody,
   options?: RequestInit,
 ): Promise<MusicFile> => {
-  return customFetch<MusicFile>(getCreateMusicUrl(), {
+  const formData = new FormData();
+  formData.append(`title`, uploadMusicBody.title);
+  if (uploadMusicBody.targetVoicePart !== undefined) {
+    formData.append(`targetVoicePart`, uploadMusicBody.targetVoicePart);
+  }
+  formData.append(`file`, uploadMusicBody.file);
+
+  return customFetch<MusicFile>(getUploadMusicUrl(), {
     ...options,
     method: "POST",
-    headers: { "Content-Type": "application/json", ...options?.headers },
-    body: JSON.stringify(createMusicBody),
+    body: formData,
   });
 };
 
-export const getCreateMusicMutationOptions = <
+export const getUploadMusicMutationOptions = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createMusic>>,
+    Awaited<ReturnType<typeof uploadMusic>>,
     TError,
-    { data: BodyType<CreateMusicBody> },
+    { data: BodyType<UploadMusicBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationOptions<
-  Awaited<ReturnType<typeof createMusic>>,
+  Awaited<ReturnType<typeof uploadMusic>>,
   TError,
-  { data: BodyType<CreateMusicBody> },
+  { data: BodyType<UploadMusicBody> },
   TContext
 > => {
-  const mutationKey = ["createMusic"];
+  const mutationKey = ["uploadMusic"];
   const { mutation: mutationOptions, request: requestOptions } = options
     ? options.mutation &&
       "mutationKey" in options.mutation &&
@@ -1281,44 +1290,44 @@ export const getCreateMusicMutationOptions = <
     : { mutation: { mutationKey }, request: undefined };
 
   const mutationFn: MutationFunction<
-    Awaited<ReturnType<typeof createMusic>>,
-    { data: BodyType<CreateMusicBody> }
+    Awaited<ReturnType<typeof uploadMusic>>,
+    { data: BodyType<UploadMusicBody> }
   > = (props) => {
     const { data } = props ?? {};
 
-    return createMusic(data, requestOptions);
+    return uploadMusic(data, requestOptions);
   };
 
   return { mutationFn, ...mutationOptions };
 };
 
-export type CreateMusicMutationResult = NonNullable<
-  Awaited<ReturnType<typeof createMusic>>
+export type UploadMusicMutationResult = NonNullable<
+  Awaited<ReturnType<typeof uploadMusic>>
 >;
-export type CreateMusicMutationBody = BodyType<CreateMusicBody>;
-export type CreateMusicMutationError = ErrorType<unknown>;
+export type UploadMusicMutationBody = BodyType<UploadMusicBody>;
+export type UploadMusicMutationError = ErrorType<unknown>;
 
 /**
- * @summary Upload a music link (admin only)
+ * @summary Upload a music file (admin only)
  */
-export const useCreateMusic = <
+export const useUploadMusic = <
   TError = ErrorType<unknown>,
   TContext = unknown,
 >(options?: {
   mutation?: UseMutationOptions<
-    Awaited<ReturnType<typeof createMusic>>,
+    Awaited<ReturnType<typeof uploadMusic>>,
     TError,
-    { data: BodyType<CreateMusicBody> },
+    { data: BodyType<UploadMusicBody> },
     TContext
   >;
   request?: SecondParameter<typeof customFetch>;
 }): UseMutationResult<
-  Awaited<ReturnType<typeof createMusic>>,
+  Awaited<ReturnType<typeof uploadMusic>>,
   TError,
-  { data: BodyType<CreateMusicBody> },
+  { data: BodyType<UploadMusicBody> },
   TContext
 > => {
-  return useMutation(getCreateMusicMutationOptions(options));
+  return useMutation(getUploadMusicMutationOptions(options));
 };
 
 /**
@@ -1406,6 +1415,94 @@ export const useDeleteMusic = <
 };
 
 /**
+ * @summary Serve an uploaded music file
+ */
+export const getServeMusicFileUrl = (filename: string) => {
+  return `/api/music/files/${filename}`;
+};
+
+export const serveMusicFile = async (
+  filename: string,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getServeMusicFileUrl(filename), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getServeMusicFileQueryKey = (filename: string) => {
+  return [`/api/music/files/${filename}`] as const;
+};
+
+export const getServeMusicFileQueryOptions = <
+  TData = Awaited<ReturnType<typeof serveMusicFile>>,
+  TError = ErrorType<unknown>,
+>(
+  filename: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof serveMusicFile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getServeMusicFileQueryKey(filename);
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof serveMusicFile>>> = ({
+    signal,
+  }) => serveMusicFile(filename, { signal, ...requestOptions });
+
+  return {
+    queryKey,
+    queryFn,
+    enabled: !!filename,
+    ...queryOptions,
+  } as UseQueryOptions<
+    Awaited<ReturnType<typeof serveMusicFile>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ServeMusicFileQueryResult = NonNullable<
+  Awaited<ReturnType<typeof serveMusicFile>>
+>;
+export type ServeMusicFileQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Serve an uploaded music file
+ */
+
+export function useServeMusicFile<
+  TData = Awaited<ReturnType<typeof serveMusicFile>>,
+  TError = ErrorType<unknown>,
+>(
+  filename: string,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof serveMusicFile>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getServeMusicFileQueryOptions(filename, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
  * @summary Get admin dashboard statistics
  */
 export const getGetAdminStatsUrl = () => {
@@ -1479,3 +1576,270 @@ export function useGetAdminStats<
 
   return { ...query, queryKey: queryOptions.queryKey };
 }
+
+/**
+ * @summary Get all group chat messages
+ */
+export const getListChatMessagesUrl = (params?: ListChatMessagesParams) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/chat?${stringifiedParams}`
+    : `/api/chat`;
+};
+
+export const listChatMessages = async (
+  params?: ListChatMessagesParams,
+  options?: RequestInit,
+): Promise<ChatMessage[]> => {
+  return customFetch<ChatMessage[]>(getListChatMessagesUrl(params), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getListChatMessagesQueryKey = (
+  params?: ListChatMessagesParams,
+) => {
+  return [`/api/chat`, ...(params ? [params] : [])] as const;
+};
+
+export const getListChatMessagesQueryOptions = <
+  TData = Awaited<ReturnType<typeof listChatMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListChatMessagesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listChatMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getListChatMessagesQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof listChatMessages>>
+  > = ({ signal }) => listChatMessages(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof listChatMessages>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type ListChatMessagesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof listChatMessages>>
+>;
+export type ListChatMessagesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all group chat messages
+ */
+
+export function useListChatMessages<
+  TData = Awaited<ReturnType<typeof listChatMessages>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: ListChatMessagesParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof listChatMessages>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getListChatMessagesQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Send a group chat message
+ */
+export const getSendChatMessageUrl = () => {
+  return `/api/chat`;
+};
+
+export const sendChatMessage = async (
+  sendChatMessageBody: SendChatMessageBody,
+  options?: RequestInit,
+): Promise<ChatMessage> => {
+  return customFetch<ChatMessage>(getSendChatMessageUrl(), {
+    ...options,
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...options?.headers },
+    body: JSON.stringify(sendChatMessageBody),
+  });
+};
+
+export const getSendChatMessageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendChatMessage>>,
+    TError,
+    { data: BodyType<SendChatMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof sendChatMessage>>,
+  TError,
+  { data: BodyType<SendChatMessageBody> },
+  TContext
+> => {
+  const mutationKey = ["sendChatMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof sendChatMessage>>,
+    { data: BodyType<SendChatMessageBody> }
+  > = (props) => {
+    const { data } = props ?? {};
+
+    return sendChatMessage(data, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type SendChatMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof sendChatMessage>>
+>;
+export type SendChatMessageMutationBody = BodyType<SendChatMessageBody>;
+export type SendChatMessageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Send a group chat message
+ */
+export const useSendChatMessage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof sendChatMessage>>,
+    TError,
+    { data: BodyType<SendChatMessageBody> },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof sendChatMessage>>,
+  TError,
+  { data: BodyType<SendChatMessageBody> },
+  TContext
+> => {
+  return useMutation(getSendChatMessageMutationOptions(options));
+};
+
+/**
+ * @summary Delete a chat message (admin or own message)
+ */
+export const getDeleteChatMessageUrl = (id: number) => {
+  return `/api/chat/${id}`;
+};
+
+export const deleteChatMessage = async (
+  id: number,
+  options?: RequestInit,
+): Promise<void> => {
+  return customFetch<void>(getDeleteChatMessageUrl(id), {
+    ...options,
+    method: "DELETE",
+  });
+};
+
+export const getDeleteChatMessageMutationOptions = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteChatMessage>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationOptions<
+  Awaited<ReturnType<typeof deleteChatMessage>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  const mutationKey = ["deleteChatMessage"];
+  const { mutation: mutationOptions, request: requestOptions } = options
+    ? options.mutation &&
+      "mutationKey" in options.mutation &&
+      options.mutation.mutationKey
+      ? options
+      : { ...options, mutation: { ...options.mutation, mutationKey } }
+    : { mutation: { mutationKey }, request: undefined };
+
+  const mutationFn: MutationFunction<
+    Awaited<ReturnType<typeof deleteChatMessage>>,
+    { id: number }
+  > = (props) => {
+    const { id } = props ?? {};
+
+    return deleteChatMessage(id, requestOptions);
+  };
+
+  return { mutationFn, ...mutationOptions };
+};
+
+export type DeleteChatMessageMutationResult = NonNullable<
+  Awaited<ReturnType<typeof deleteChatMessage>>
+>;
+
+export type DeleteChatMessageMutationError = ErrorType<unknown>;
+
+/**
+ * @summary Delete a chat message (admin or own message)
+ */
+export const useDeleteChatMessage = <
+  TError = ErrorType<unknown>,
+  TContext = unknown,
+>(options?: {
+  mutation?: UseMutationOptions<
+    Awaited<ReturnType<typeof deleteChatMessage>>,
+    TError,
+    { id: number },
+    TContext
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseMutationResult<
+  Awaited<ReturnType<typeof deleteChatMessage>>,
+  TError,
+  { id: number },
+  TContext
+> => {
+  return useMutation(getDeleteChatMessageMutationOptions(options));
+};

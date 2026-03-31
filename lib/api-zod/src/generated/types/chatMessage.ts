@@ -6,12 +6,12 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export interface Message {
+export interface ChatMessage {
   id: number;
   content: string;
-  /** @nullable */
-  targetVoicePart: string | null;
-  isAnnouncement: boolean;
-  createdAt: string;
+  authorId: number;
   authorUsername: string;
+  authorRole: string;
+  authorVoicePart: string;
+  createdAt: string;
 }

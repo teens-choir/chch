@@ -147,6 +147,7 @@ export const ListMessagesResponseItem = zod.object({
   id: zod.number(),
   content: zod.string(),
   targetVoicePart: zod.string().nullable(),
+  isAnnouncement: zod.boolean(),
   createdAt: zod.string(),
   authorUsername: zod.string(),
 });
@@ -158,6 +159,7 @@ export const ListMessagesResponse = zod.array(ListMessagesResponseItem);
 export const CreateMessageBody = zod.object({
   content: zod.string(),
   targetVoicePart: zod.string().nullable(),
+  isAnnouncement: zod.boolean(),
 });
 
 /**
@@ -176,18 +178,18 @@ export const ListMusicResponseItem = zod.object({
   url: zod.string(),
   fileType: zod.enum(["pdf", "mp3", "other"]),
   targetVoicePart: zod.string().nullable(),
+  isUploaded: zod.boolean(),
   createdAt: zod.string(),
 });
 export const ListMusicResponse = zod.array(ListMusicResponseItem);
 
 /**
- * @summary Upload a music link (admin only)
+ * @summary Upload a music file (admin only)
  */
-export const CreateMusicBody = zod.object({
+export const UploadMusicBody = zod.object({
   title: zod.string(),
-  url: zod.string(),
-  fileType: zod.enum(["pdf", "mp3", "other"]),
-  targetVoicePart: zod.string().nullable(),
+  targetVoicePart: zod.string().optional(),
+  file: zod.instanceof(File),
 });
 
 /**
@@ -195,6 +197,13 @@ export const CreateMusicBody = zod.object({
  */
 export const DeleteMusicParams = zod.object({
   id: zod.coerce.number(),
+});
+
+/**
+ * @summary Serve an uploaded music file
+ */
+export const ServeMusicFileParams = zod.object({
+  filename: zod.coerce.string(),
 });
 
 /**
@@ -209,4 +218,39 @@ export const GetAdminStatsResponse = zod.object({
   absentToday: zod.number(),
   totalMessages: zod.number(),
   totalMusicFiles: zod.number(),
+});
+
+/**
+ * @summary Get all group chat messages
+ */
+export const ListChatMessagesQueryParams = zod.object({
+  before: zod.coerce
+    .number()
+    .optional()
+    .describe("Get messages before this ID (for pagination)"),
+});
+
+export const ListChatMessagesResponseItem = zod.object({
+  id: zod.number(),
+  content: zod.string(),
+  authorId: zod.number(),
+  authorUsername: zod.string(),
+  authorRole: zod.string(),
+  authorVoicePart: zod.string(),
+  createdAt: zod.string(),
+});
+export const ListChatMessagesResponse = zod.array(ListChatMessagesResponseItem);
+
+/**
+ * @summary Send a group chat message
+ */
+export const SendChatMessageBody = zod.object({
+  content: zod.string(),
+});
+
+/**
+ * @summary Delete a chat message (admin or own message)
+ */
+export const DeleteChatMessageParams = zod.object({
+  id: zod.coerce.number(),
 });

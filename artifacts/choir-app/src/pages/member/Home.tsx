@@ -1,6 +1,8 @@
 import { MemberLayout } from "@/components/MemberLayout";
 import { useGetCurrentUser, useListMessages, useListMusic, useGetMyAttendanceStats, getListMessagesQueryKey, getListMusicQueryKey, getGetMyAttendanceStatsQueryKey } from "@workspace/api-client-react";
-import { FileText, Music, Link as LinkIcon, AlertCircle } from "lucide-react";
+import { FileText, Music, Link as LinkIcon, AlertCircle, Megaphone } from "lucide-react";
+
+const BASE = import.meta.env.BASE_URL.replace(/\/$/, "");
 
 export default function Home() {
   const { data: user } = useGetCurrentUser();
@@ -53,19 +55,39 @@ export default function Home() {
           </div>
 
           <div className="space-y-4">
-            <h3 className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">Urgent Directives</h3>
+            <h3 className="text-xs font-bold tracking-widest uppercase text-muted-foreground mb-4">Directives</h3>
             {messages?.length === 0 ? (
-              <div className="text-muted-foreground italic text-sm tracking-widest">No active directives.</div>
+              <div className="text-muted-foreground italic text-sm tracking-widest">No directives yet.</div>
             ) : messages?.map(msg => (
-              <div key={msg.id} className={`glass-panel p-5 rounded-xl border ${msg.targetVoicePart ? 'border-primary bg-primary/5 shadow-[0_0_15px_rgba(var(--primary),0.1)]' : 'border-white/10'}`}>
-                {msg.targetVoicePart && (
-                  <div className="flex items-center gap-2 text-primary text-[10px] font-bold uppercase tracking-widest mb-3">
-                    <AlertCircle size={14} /> Critical for {msg.targetVoicePart}
-                  </div>
-                )}
+              <div
+                key={msg.id}
+                className="glass-panel p-5 rounded-xl border"
+                style={msg.isAnnouncement ? {
+                  borderColor: "rgba(251,191,36,0.6)",
+                  background: "rgba(251,191,36,0.04)",
+                  boxShadow: "0 0 25px rgba(251,191,36,0.2), 0 0 60px rgba(251,191,36,0.05)",
+                } : msg.targetVoicePart ? {
+                  borderColor: "rgba(var(--primary),0.5)",
+                  background: "rgba(var(--primary),0.05)",
+                } : {
+                  borderColor: "rgba(255,255,255,0.1)",
+                }}
+              >
+                <div className="flex items-center gap-2 flex-wrap mb-3">
+                  {msg.isAnnouncement && (
+                    <div className="flex items-center gap-1.5 text-amber-400 text-[10px] font-bold uppercase tracking-widest">
+                      <Megaphone size={12} /> Announcement
+                    </div>
+                  )}
+                  {msg.targetVoicePart && (
+                    <div className="flex items-center gap-2 text-primary text-[10px] font-bold uppercase tracking-widest">
+                      <AlertCircle size={12} /> For {msg.targetVoicePart} only
+                    </div>
+                  )}
+                </div>
                 <p className="text-sm text-white/90 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
                 <div className="text-[10px] text-muted-foreground mt-4 uppercase tracking-widest font-medium border-t border-white/5 pt-3">
-                  {new Date(msg.createdAt).toLocaleDateString()}
+                  {new Date(msg.createdAt).toLocaleDateString()} · by {msg.authorUsername}
                 </div>
               </div>
             ))}
@@ -78,7 +100,7 @@ export default function Home() {
             {musicFiles?.length === 0 ? (
               <div className="text-muted-foreground italic text-sm tracking-widest">No files in database.</div>
             ) : musicFiles?.map(file => (
-              <a key={file.id} href={file.url} target="_blank" rel="noreferrer" className="glass-panel p-5 rounded-xl border border-white/10 hover:border-primary hover:bg-primary/5 transition-all group flex items-center gap-4">
+              <a key={file.id} href={file.isUploaded ? `${BASE}${file.url}` : file.url} target="_blank" rel="noreferrer" className="glass-panel p-5 rounded-xl border border-white/10 hover:border-primary hover:bg-primary/5 transition-all group flex items-center gap-4">
                 <div className="w-14 h-14 rounded-lg bg-black/40 flex items-center justify-center text-primary group-hover:glow-text group-hover:scale-110 group-hover:bg-primary/20 transition-all flex-shrink-0">
                   {file.fileType === 'pdf' ? <FileText size={24} /> : file.fileType === 'mp3' ? <Music size={24} /> : <LinkIcon size={24} />}
                 </div>
