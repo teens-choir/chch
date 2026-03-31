@@ -15,82 +15,79 @@ pnpm workspace monorepo using TypeScript. Each package manages its own dependenc
 - **Validation**: Zod (`zod/v4`), `drizzle-zod`
 - **API codegen**: Orval (from OpenAPI spec)
 - **Build**: esbuild (CJS bundle)
+- **Auth**: express-session + bcryptjs (password hashing)
+- **Frontend**: React + Vite + Tailwind CSS (choir-app artifact)
 
 ## Structure
 
 ```text
 artifacts-monorepo/
 ├── artifacts/              # Deployable applications
-│   └── api-server/         # Express API server
+│   ├── api-server/         # Express API server
+│   └── choir-app/          # React+Vite frontend (Teenagers Choir)
 ├── lib/                    # Shared libraries
 │   ├── api-spec/           # OpenAPI spec + Orval codegen config
 │   ├── api-client-react/   # Generated React Query hooks
 │   ├── api-zod/            # Generated Zod schemas from OpenAPI
 │   └── db/                 # Drizzle ORM schema + DB connection
-├── scripts/                # Utility scripts (single workspace package)
-│   └── src/                # Individual .ts scripts, run via `pnpm --filter @workspace/scripts run <script>`
-├── pnpm-workspace.yaml     # pnpm workspace (artifacts/*, lib/*, lib/integrations/*, scripts)
-├── tsconfig.base.json      # Shared TS options (composite, bundler resolution, es2022)
-├── tsconfig.json           # Root TS project references
-└── package.json            # Root package with hoisted devDeps
+├── scripts/                # Utility scripts
+├── pnpm-workspace.yaml
+├── tsconfig.base.json
+├── tsconfig.json
+└── package.json
 ```
 
-## TypeScript & Composite Projects
+## Application: Teenagers Choir
 
-Every package extends `tsconfig.base.json` which sets `composite: true`. The root `tsconfig.json` lists all packages as project references. This means:
+A choir management platform for a teenagers' choir with dual-role authentication.
 
-- **Always typecheck from the root** — run `pnpm run typecheck` (which runs `tsc --build --emitDeclarationOnly`). This builds the full dependency graph so that cross-package imports resolve correctly. Running `tsc` inside a single package will fail if its dependencies haven't been built yet.
-- **`emitDeclarationOnly`** — we only emit `.d.ts` files during typecheck; actual JS bundling is handled by esbuild/tsx/vite...etc, not `tsc`.
-- **Project references** — when package A depends on package B, A's `tsconfig.json` must list B in its `references` array. `tsc --build` uses this to determine build order and skip up-to-date packages.
+### Features
+- **Dual-gate auth**: Admins vs Members (role-based login routing)
+- **Admin accounts** (hardcoded, auto-seeded on startup):
+  - `eyuelg` / `choir2123`
+  - `yegetaa` / `choir3212`
+  - `fiker` / `choir6712`
+  - `lidiya` / `choir6745`
+- **Member registration**: Self-service, role='member', voicePart='Normal'
+- **Password change**: Both admins and members can change their own passwords
 
-## Root Scripts
+### Admin "Command Center" features
+- Member list with voice part assignment (Soprano/Alto/Normal)
+- Attendance grid — toggle Present/Absent for today's rehearsal
+- Broadcast messages to all or specific voice groups
+- Music stand manager — add/delete music links (PDFs/MP3s) by voice part
+- Stats dashboard
 
-- `pnpm run build` — runs `typecheck` first, then recursively runs `build` in all packages that define it
-- `pnpm run typecheck` — runs `tsc --build --emitDeclarationOnly` using project references
+### Member "Sanctuary" features
+- Dynamic voice-part-based theme:
+  - Soprano: Vivid Red (#FF3B30)
+  - Alto: Purple (#8B5CF6)
+  - Normal: Royal Gold (#D4AF37)
+- Music rack (filtered by voice part)
+- Instruction feed (messages from admins)
+- SVG circular attendance gauge
 
-## Packages
+### Database Schema (Drizzle ORM)
+- `users` — id, username, password_hash, role, voice_part, created_at
+- `attendance` — id, user_id, status, date, created_at, updated_at
+- `messages` — id, content, target_voice_part, author_id, created_at
+- `music` — id, title, url, file_type, target_voice_part, author_id, created_at
 
-### `artifacts/api-server` (`@workspace/api-server`)
-
-Express 5 API server. Routes live in `src/routes/` and use `@workspace/api-zod` for request and response validation and `@workspace/db` for persistence.
-
-- Entry: `src/index.ts` — reads `PORT`, starts Express
-- App setup: `src/app.ts` — mounts CORS, JSON/urlencoded parsing, routes at `/api`
-- Routes: `src/routes/index.ts` mounts sub-routers; `src/routes/health.ts` exposes `GET /health` (full path: `/api/health`)
-- Depends on: `@workspace/db`, `@workspace/api-zod`
-- `pnpm --filter @workspace/api-server run dev` — run the dev server
-- `pnpm --filter @workspace/api-server run build` — production esbuild bundle (`dist/index.cjs`)
-- Build bundles an allowlist of deps (express, cors, pg, drizzle-orm, zod, etc.) and externalizes the rest
-
-### `lib/db` (`@workspace/db`)
-
-Database layer using Drizzle ORM with PostgreSQL. Exports a Drizzle client instance and schema models.
-
-- `src/index.ts` — creates a `Pool` + Drizzle instance, exports schema
-- `src/schema/index.ts` — barrel re-export of all models
-- `src/schema/<modelname>.ts` — table definitions with `drizzle-zod` insert schemas (no models definitions exist right now)
-- `drizzle.config.ts` — Drizzle Kit config (requires `DATABASE_URL`, automatically provided by Replit)
-- Exports: `.` (pool, db, schema), `./schema` (schema only)
-
-Production migrations are handled by Replit when publishing. In development, we just use `pnpm --filter @workspace/db run push`, and we fallback to `pnpm --filter @workspace/db run push-force`.
-
-### `lib/api-spec` (`@workspace/api-spec`)
-
-Owns the OpenAPI 3.1 spec (`openapi.yaml`) and the Orval config (`orval.config.ts`). Running codegen produces output into two sibling packages:
-
-1. `lib/api-client-react/src/generated/` — React Query hooks + fetch client
-2. `lib/api-zod/src/generated/` — Zod schemas
-
-Run codegen: `pnpm --filter @workspace/api-spec run codegen`
-
-### `lib/api-zod` (`@workspace/api-zod`)
-
-Generated Zod schemas from the OpenAPI spec (e.g. `HealthCheckResponse`). Used by `api-server` for response validation.
-
-### `lib/api-client-react` (`@workspace/api-client-react`)
-
-Generated React Query hooks and fetch client from the OpenAPI spec (e.g. `useHealthCheck`, `healthCheck`).
-
-### `scripts` (`@workspace/scripts`)
-
-Utility scripts package. Each script is a `.ts` file in `src/` with a corresponding npm script in `package.json`. Run scripts via `pnpm --filter @workspace/scripts run <script>`. Scripts can import any workspace package (e.g., `@workspace/db`) by adding it as a dependency in `scripts/package.json`.
+### API Routes (all under `/api`)
+- `POST /auth/login` — login
+- `POST /auth/register` — register new member
+- `POST /auth/logout` — logout
+- `GET /auth/me` — get current user
+- `POST /auth/change-password` — change own password
+- `GET /users` — list members (admin only)
+- `PATCH /users/:id/voice-part` — update voice part (admin only)
+- `GET /attendance` — today's attendance (admin only)
+- `PATCH /attendance/:userId` — toggle attendance (admin only)
+- `GET /attendance/my-stats` — member's own stats
+- `GET /messages` — get messages (filtered by voice part for members)
+- `POST /messages` — broadcast message (admin only)
+- `DELETE /messages/:id` — delete message (admin only)
+- `GET /music` — get music files (filtered by voice part for members)
+- `POST /music` — add music link (admin only)
+- `DELETE /music/:id` — delete music (admin only)
+- `GET /admin/stats` — dashboard stats (admin only)

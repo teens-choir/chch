@@ -1,22 +1,30 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Teenagers Choir API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication
+  - name: users
+    description: User management
+  - name: attendance
+    description: Attendance tracking
+  - name: messages
+    description: Choir messages/instructions
+  - name: music
+    description: Music files
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +32,320 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login with username and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginBody"
+      responses:
+        "200":
+          description: Login success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register as a new member
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterBody"
+      responses:
+        "201":
+          description: Registration success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/logout:
+    post:
+      operationId: logout
+      tags: [auth]
+      summary: Logout current user
+      responses:
+        "200":
+          description: Logged out
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+
+  /auth/me:
+    get:
+      operationId: getCurrentUser
+      tags: [auth]
+      summary: Get current authenticated user
+      responses:
+        "200":
+          description: Current user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthUser"
+        "401":
+          description: Not authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/change-password:
+    post:
+      operationId: changePassword
+      tags: [auth]
+      summary: Change own password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordBody"
+      responses:
+        "200":
+          description: Password changed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SuccessResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /users:
+    get:
+      operationId: listUsers
+      tags: [users]
+      summary: List all members (admin only)
+      responses:
+        "200":
+          description: List of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User"
+
+  /users/{id}/voice-part:
+    patch:
+      operationId: updateVoicePart
+      tags: [users]
+      summary: Update a member's voice part (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateVoicePartBody"
+      responses:
+        "200":
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /attendance:
+    get:
+      operationId: listAttendance
+      tags: [attendance]
+      summary: Get today's attendance records (admin only)
+      responses:
+        "200":
+          description: Attendance records
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/AttendanceRecord"
+
+  /attendance/{userId}:
+    patch:
+      operationId: updateAttendance
+      tags: [attendance]
+      summary: Toggle attendance for a user (admin only)
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateAttendanceBody"
+      responses:
+        "200":
+          description: Updated attendance record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceRecord"
+
+  /attendance/my-stats:
+    get:
+      operationId: getMyAttendanceStats
+      tags: [attendance]
+      summary: Get current member's attendance stats
+      responses:
+        "200":
+          description: Attendance statistics
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AttendanceStats"
+
+  /messages:
+    get:
+      operationId: listMessages
+      tags: [messages]
+      summary: Get messages for the current user's voice part
+      responses:
+        "200":
+          description: Messages
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Message"
+    post:
+      operationId: createMessage
+      tags: [messages]
+      summary: Send a broadcast message (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMessageBody"
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Message"
+
+  /messages/{id}:
+    delete:
+      operationId: deleteMessage
+      tags: [messages]
+      summary: Delete a message (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /music:
+    get:
+      operationId: listMusic
+      tags: [music]
+      summary: Get music files for current user's voice part
+      responses:
+        "200":
+          description: Music files
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/MusicFile"
+    post:
+      operationId: createMusic
+      tags: [music]
+      summary: Upload a music link (admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateMusicBody"
+      responses:
+        "201":
+          description: Created music entry
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MusicFile"
+
+  /music/{id}:
+    delete:
+      operationId: deleteMusic
+      tags: [music]
+      summary: Delete a music file (admin only)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+
+  /admin/stats:
+    get:
+      operationId: getAdminStats
+      tags: [users]
+      summary: Get admin dashboard statistics
+      responses:
+        "200":
+          description: Admin stats
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AdminStats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +356,249 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    SuccessResponse:
+      type: object
+      properties:
+        message:
+          type: string
+      required:
+        - message
+
+    LoginBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    RegisterBody:
+      type: object
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+      required:
+        - username
+        - password
+
+    ChangePasswordBody:
+      type: object
+      properties:
+        currentPassword:
+          type: string
+        newPassword:
+          type: string
+      required:
+        - currentPassword
+        - newPassword
+
+    AuthUser:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+        voicePart:
+          type: string
+      required:
+        - id
+        - username
+        - role
+        - voicePart
+
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        role:
+          type: string
+        voicePart:
+          type: string
+        createdAt:
+          type: string
+      required:
+        - id
+        - username
+        - role
+        - voicePart
+        - createdAt
+
+    UpdateVoicePartBody:
+      type: object
+      properties:
+        voicePart:
+          type: string
+          enum: [Soprano, Alto, Normal]
+      required:
+        - voicePart
+
+    AttendanceRecord:
+      type: object
+      properties:
+        id:
+          type: integer
+        userId:
+          type: integer
+        username:
+          type: string
+        voicePart:
+          type: string
+        status:
+          type: string
+          enum: [present, absent]
+        date:
+          type: string
+      required:
+        - id
+        - userId
+        - username
+        - voicePart
+        - status
+        - date
+
+    UpdateAttendanceBody:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [present, absent]
+      required:
+        - status
+
+    AttendanceStats:
+      type: object
+      properties:
+        totalSessions:
+          type: integer
+        presentCount:
+          type: integer
+        absentCount:
+          type: integer
+        attendanceRate:
+          type: number
+      required:
+        - totalSessions
+        - presentCount
+        - absentCount
+        - attendanceRate
+
+    Message:
+      type: object
+      properties:
+        id:
+          type: integer
+        content:
+          type: string
+        targetVoicePart:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        authorUsername:
+          type: string
+      required:
+        - id
+        - content
+        - targetVoicePart
+        - createdAt
+        - authorUsername
+
+    CreateMessageBody:
+      type: object
+      properties:
+        content:
+          type: string
+        targetVoicePart:
+          type: ["string", "null"]
+      required:
+        - content
+        - targetVoicePart
+
+    MusicFile:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        url:
+          type: string
+        fileType:
+          type: string
+          enum: [pdf, mp3, other]
+        targetVoicePart:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+      required:
+        - id
+        - title
+        - url
+        - fileType
+        - targetVoicePart
+        - createdAt
+
+    CreateMusicBody:
+      type: object
+      properties:
+        title:
+          type: string
+        url:
+          type: string
+        fileType:
+          type: string
+          enum: [pdf, mp3, other]
+        targetVoicePart:
+          type: ["string", "null"]
+      required:
+        - title
+        - url
+        - fileType
+        - targetVoicePart
+
+    AdminStats:
+      type: object
+      properties:
+        totalMembers:
+          type: integer
+        sopranoCount:
+          type: integer
+        altoCount:
+          type: integer
+        normalCount:
+          type: integer
+        presentToday:
+          type: integer
+        absentToday:
+          type: integer
+        totalMessages:
+          type: integer
+        totalMusicFiles:
+          type: integer
+      required:
+        - totalMembers
+        - sopranoCount
+        - altoCount
+        - normalCount
+        - presentToday
+        - absentToday
+        - totalMessages
+        - totalMusicFiles
