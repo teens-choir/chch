@@ -1,42 +1,66 @@
-import { AdminLayout } from "@/components/AdminLayout";
-import { useGetAdminStats, getGetAdminStatsQueryKey } from "@workspace/api-client-react";
-import { Users, Music, MessageSquare, CheckCircle, XCircle } from "lucide-react";
+import { ReactNode } from "react";
+import { useLocation } from "wouter";
+import { 
+  LayoutDashboard, 
+  Users, 
+  Calendar, 
+  MessageSquare, 
+  Music, 
+  LogOut 
+} from "lucide-react";
 
-export default function Dashboard() {
-  const { data: stats, isLoading } = useGetAdminStats({ query: { queryKey: getGetAdminStatsQueryKey() }});
+export function AdminLayout({ children }: { children: ReactNode }) {
+  const [location, setLocation] = useLocation();
+
+  const menuItems = [
+    { icon: <LayoutDashboard size={20} />, label: "Overview", path: "/admin/dashboard" },
+    { icon: <Users size={20} />, label: "Members", path: "/admin/members" },
+    { icon: <Calendar size={20} />, label: "Attendance", path: "/admin/attendance" },
+    { icon: <Music size={20} />, label: "Music Vault", path: "/admin/music" },
+    { icon: <MessageSquare size={20} />, label: "Directives", path: "/admin/messages" },
+  ];
 
   return (
-    <AdminLayout>
-      <h2 className="text-2xl font-bold tracking-widest text-primary glow-text uppercase mb-8">System Overview</h2>
-      
-      {isLoading ? (
-        <div className="text-muted-foreground animate-pulse tracking-widest uppercase">Scanning database...</div>
-      ) : stats ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <StatCard title="Total Members" value={stats.totalMembers} icon={<Users />} color="text-white" />
-          <StatCard title="Sopranos" value={stats.sopranoCount} icon={<Users />} color="text-[#FF3B30]" />
-          <StatCard title="Altos" value={stats.altoCount} icon={<Users />} color="text-[#8B5CF6]" />
-          <StatCard title="Normal" value={stats.normalCount} icon={<Users />} color="text-[#D4AF37]" />
-          
-          <StatCard title="Present Today" value={stats.presentToday} icon={<CheckCircle />} color="text-green-500" />
-          <StatCard title="Absent Today" value={stats.absentToday} icon={<XCircle />} color="text-red-500" />
-          
-          <StatCard title="Active Directives" value={stats.totalMessages} icon={<MessageSquare />} color="text-primary" />
-          <StatCard title="Music Files" value={stats.totalMusicFiles} icon={<Music />} color="text-primary" />
+    <div className="flex min-h-screen bg-background">
+      {/* Sidebar */}
+      <aside className="w-64 border-r border-white/5 bg-black/20 backdrop-blur-xl p-6 hidden md:block">
+        <div className="flex items-center gap-3 mb-10 px-2">
+          <div className="w-8 h-8 rounded bg-primary/20 flex items-center justify-center">
+            <Music className="text-primary w-5 h-5" />
+          </div>
+          <span className="font-bold tracking-widest uppercase text-sm">Admin Portal</span>
         </div>
-      ) : null}
-    </AdminLayout>
-  );
-}
 
-function StatCard({ title, value, icon, color }: { title: string, value: number, icon: React.ReactNode, color: string }) {
-  return (
-    <div className="glass-panel p-6 rounded-xl border border-white/5 hover:border-primary/50 transition-colors group">
-      <div className={`w-12 h-12 rounded-lg bg-black/40 flex items-center justify-center mb-4 ${color}`}>
-        {icon}
-      </div>
-      <div className="text-4xl font-light tracking-tight mb-2 group-hover:glow-text group-hover:text-primary transition-colors text-white">{value}</div>
-      <div className="text-xs tracking-widest text-muted-foreground uppercase">{title}</div>
+        <nav className="space-y-2">
+          {menuItems.map((item) => (
+            <button
+              key={item.path}
+              onClick={() => setLocation(item.path)}
+              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm transition-all ${
+                location === item.path 
+                ? "bg-primary text-primary-foreground font-bold shadow-lg shadow-primary/20" 
+                : "text-muted-foreground hover:bg-white/5 hover:text-white"
+              }`}
+            >
+              {item.icon}
+              <span className="uppercase tracking-widest text-[10px]">{item.label}</span>
+            </button>
+          ))}
+        </nav>
+
+        <button 
+          onClick={() => setLocation("/")}
+          className="flex items-center gap-3 px-4 py-3 text-muted-foreground hover:text-destructive transition-colors mt-auto absolute bottom-8"
+        >
+          <LogOut size={20} />
+          <span className="uppercase tracking-widest text-[10px]">Logout</span>
+        </button>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-8 overflow-y-auto">
+        {children}
+      </main>
     </div>
   );
 }
