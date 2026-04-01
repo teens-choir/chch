@@ -1,11 +1,12 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import tailwindcss from "@tailwindcss/vite"; // This is the line we need!
 import path from "path";
 
-// We are removing all the "throw new Error" checks so it works on Netlify
 export default defineConfig({
   plugins: [
     react(),
+    tailwindcss(), // This "compiles" your Soprano Red styles
   ],
   resolve: {
     alias: {
@@ -15,9 +16,5 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
-  },
-  server: {
-    port: 3000,
-    host: "0.0.0.0",
-  },
+  }
 });
