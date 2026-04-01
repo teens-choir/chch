@@ -1,29 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useLocation } from "wouter";
-import { useLogin, useRegister, useGetCurrentUser } from "@workspace/api-client-react";
 import { Music, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
 export default function Login() {
   const [, setLocation] = useLocation();
-  const { data: user, isLoading: userLoading, isError: userError } = useGetCurrentUser();
   const [isLogin, setIsLogin] = useState(true);
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [errorMsg, setErrorMsg] = useState("");
-
-  const loginMutation = useLogin();
-  const registerMutation = useRegister();
-
-  useEffect(() => {
-    if (user) {
-      if (user.role === "admin") setLocation("/admin/dashboard");
-      else setLocation("/member/home");
-    }
-  }, [user, setLocation]);
-
-  if (userLoading && !userError) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,34 +20,31 @@ export default function Login() {
       return;
     }
 
-    const payload = { data: { username, password } };
-
+    // --- EMERGENCY ADMIN BYPASS ---
+    // This allows you to enter the dashboard without a database
     if (isLogin) {
-      loginMutation.mutate(payload, {
-        onSuccess: (res) => {
-          setLocation(res.role === "admin" ? "/admin/dashboard" : "/member/home");
-        },
-        onError: (err: any) => {
-          setErrorMsg(err?.error || "Login failed");
-        }
-      });
+      if (username === "eyuelg" && password === "choir2123") {
+        setLocation("/admin/dashboard");
+        return;
+      }
+      if (username === "yegetaa" && password === "choir3212") {
+        setLocation("/admin/dashboard");
+        return;
+      }
+      
+      // If it's not an admin, show a temporary error since Firebase isn't linked yet
+      setErrorMsg("Member database is offline. Try Admin login.");
     } else {
-      registerMutation.mutate(payload, {
-        onSuccess: () => {
-          setLocation("/member/home");
-        },
-        onError: (err: any) => {
-          setErrorMsg(err?.error || "Registration failed");
-        }
-      });
+      setErrorMsg("Registration is currently disabled until Sunday.");
     }
   };
 
   return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center p-4 relative overflow-hidden theme-normal">
+      {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-primary/10 blur-[120px] rounded-full pointer-events-none" />
 
-      <div className="glass-panel w-full max-w-md p-8 rounded-2xl z-10 page-transition border-primary/30 glow-border">
+      <div className="glass-panel w-full max-w-md p-8 rounded-2xl z-10 page-transition border-primary/30 glow-border bg-black/20 backdrop-blur-xl">
         <div className="flex flex-col items-center mb-8">
           <div className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center mb-4 glow-border">
             <Music className="text-primary w-8 h-8 glow-text" />
@@ -85,6 +68,7 @@ export default function Login() {
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="bg-black/40 border-white/10 h-12 focus-visible:ring-primary focus-visible:border-primary transition-all text-white"
+              placeholder="Enter username..."
             />
           </div>
           <div className="space-y-2">
@@ -94,13 +78,13 @@ export default function Login() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="bg-black/40 border-white/10 h-12 focus-visible:ring-primary focus-visible:border-primary transition-all text-white"
+              placeholder="••••••••"
             />
           </div>
 
           <Button 
             type="submit" 
             className="w-full h-12 text-md font-bold tracking-widest uppercase bg-primary hover:bg-primary/80 text-primary-foreground transition-all hover:scale-[1.02]"
-            disabled={loginMutation.isPending || registerMutation.isPending}
           >
             {isLogin ? "Access System" : "Join Choir"}
           </Button>
